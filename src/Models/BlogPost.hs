@@ -34,6 +34,14 @@ type BPColumnWrite = BlogPost' (Maybe (O.Column O.PGInt8))
                                (O.Column O.PGText)
                                (Maybe (O.Column O.PGTimestamptz))
 
+instance ToJSON BlogPostRead where
+  toJSON post = object [ "id"        .= bpId post
+                       , "title"     .= bpTitle post
+                       , "body"      .= bpBody post
+                       , "email"     .= bpUsersEmail post
+                       , "timestamp" .= bpTimestamp post
+                       ]
+
 instance FromJSON BlogPostWrite where
     parseJSON (Object o) = BlogPost <$>
         o .:? "id" <*>
@@ -45,7 +53,7 @@ instance FromJSON BlogPostWrite where
 
 $(makeAdaptorAndInstance "pBlogPost" ''BlogPost')
 
-blogPostTable :: O.Table BlogColumnWrite BlogColumnRead
+blogPostTable :: O.Table BPColumnWrite BPColumnRead
 blogPostTable = O.Table "posts" (pBlogPost BlogPost
     { bpId = O.optional "id"
     , bpTitle = O.required "title"

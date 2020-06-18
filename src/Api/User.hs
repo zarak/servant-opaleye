@@ -6,48 +6,34 @@
 module Api.User where
 
 import Data.Aeson
+import qualified Opaleye as O
 import Servant
-import Control.Monad (mzero)
+import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (listToMaybe)
+import qualified Database.PostgreSQL.Simple as PGS
 
 import App
-
-data User = User
-  { userEmail        :: Email
-  , userPassword :: String
-  } deriving (Eq, Show)
-
-instance ToJSON User where
-    toJSON user = object ["email" .= userEmail user]
-
-instance FromJSON User where
-    parseJSON (Object o) = User <$>
-                              o .: "email" <*>
-                              o .: "password"
-    parseJSON _ = mzero
+import Models.User
+import Queries.User
 
 type UserAPI = Get '[JSON] [User]
           :<|> Capture "email" Email :> Get '[JSON] (Maybe User)
-          :<|> ReqBody '[JSON] User :> Post '[JSON] [User]
+          :<|> ReqBody '[JSON] User :> Post '[JSON] (Maybe Email)
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy
 
-userServer :: Server UserAPI
-userServer = getUsers
-        :<|> getUserByEmail
-        :<|> postUser
+userServer :: PGS.Connection -> Server UserAPI
+userServer con = getUsers con 
+    :<|> getUserByEmail con 
+    :<|> postUser con
 
-getUsers :: AppM [User]
-getUsers = return users
+getUsers :: PGS.Connection -> AppM [User]
+getUsers con = liftIO $ O.runQuery con usersQuery 
 
-getUserByEmail :: Email -> AppM (Maybe User)
-getUserByEmail email = return $ listToMaybe $ filter ((== email) . userEmail) users
+getUserByEmail :: PGS.Connection -> Email -> AppM (Maybe User)
+getUserByEmail con email = liftIO $ listToMaybe <$> O.runQuery con (userByEmailQuery email)
 
-postUser :: User -> AppM [User]
-postUser user = return $ users ++ [user]
-
-users :: [User]
-users = [ User "isaacnewton@gmail.com" "betterthanleibniz"
-        , User "alberteinstein@hotmail.com" "crazytrain"
-        ]
+postUser :: PGS.Connection -> User -> AppM (Maybe Email)
+postUser con user = liftIO $ listToMaybe <$>
+  O.runInsertManyReturning con userTable [userToPG user] userEmail

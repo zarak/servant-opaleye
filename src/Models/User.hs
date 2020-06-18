@@ -24,14 +24,18 @@ data User' email pwd = User
 type User = User' Email ByteString
 type UserColumn = User' (O.Column O.PGText) (O.Column O.PGBytea)
 
+-- This TH creates a product profunctor
+$(makeAdaptorAndInstance "pUser" ''User')
+
+instance ToJSON User where
+  toJSON user = object [ "email" .= userEmail user ]
+
 instance FromJSON User where
     parseJSON (Object o) = User <$>
         o .: "email" <*>
             (BS.pack <$> o .: "password")
     parseJSON _ = mzero
 
--- This TH creates a product profunctor
-$(makeAdaptorAndInstance "pUser" ''User')
 
 -- Read and Write have separate types - but here they are the same, thus UserColumn is repeated
 userTable :: O.Table UserColumn UserColumn
