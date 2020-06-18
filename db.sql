@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS posts;
+
 CREATE TABLE users (
     email VARCHAR UNIQUE NOT NULL,
     password BYTEA NOT NULL,
