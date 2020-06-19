@@ -11,6 +11,7 @@ import Data.Aeson
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Crypto.PasswordStore
 
 import App
 
