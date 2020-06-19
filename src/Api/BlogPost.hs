@@ -1,7 +1,5 @@
 {-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Api.BlogPost where
 

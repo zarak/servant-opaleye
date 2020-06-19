@@ -22,19 +22,20 @@ data User' email pwd = User
 
 -- Use polymorphic type User' on both Haskell User type and postgres-opaleye
 -- User type
-type User = User' Email ByteString
+type UserRead = User' Email ByteString
+type UserWrite = User' Email String
 type UserColumn = User' (O.Column O.PGText) (O.Column O.PGBytea)
 
 -- This TH creates a product profunctor
 $(makeAdaptorAndInstance "pUser" ''User')
 
-instance ToJSON User where
+instance ToJSON UserRead where
   toJSON user = object [ "email" .= userEmail user ]
 
-instance FromJSON User where
+instance FromJSON UserWrite where
     parseJSON (Object o) = User <$>
         o .: "email" <*>
-            (BS.pack <$> o .: "password")
+        o .: "password"
     parseJSON _ = mzero
 
 
@@ -45,8 +46,15 @@ userTable = O.Table "users" (pUser User
     , userPassword = O.required "password"
     })
 
-userToPG :: User -> UserColumn
-userToPG = pUser User
-    { userEmail = O.pgString
-    , userPassword = O.pgStrictByteString
-    }
+userToPG :: UserWrite -> IO UserColumn
+userToPG user = do
+    hashedPwd <- flip makePassword 12 . BS.pack . userPassword $ user
+    return $ User 
+        { userEmail = O.pgString .userEmail $ user
+        , userPassword = O.pgStrictByteString hashedPwd
+        }
+
+compareUsers :: Maybe UserRead -> UserWrite -> Bool
+compareUsers Nothing _ = False
+compareUsers (Just dbUser) userAttempt =
+    verifyPassword (BS.pack . userPassword $ userAttempt) (userPassword dbUser)
