@@ -45,10 +45,10 @@ instance ToJSON BlogPostRead where
 instance FromJSON BlogPostWrite where
     parseJSON (Object o) = BlogPost <$>
         o .:? "id" <*>
-            o .: "title" <*>
-                o .: "body" <*>
-                    o .: "email" <*>
-                        o .:? "timestamp" 
+        o .: "title" <*>
+        o .: "body" <*>
+        o .: "email" <*>
+        o .:? "timestamp" 
     parseJSON _ = mzero
 
 $(makeAdaptorAndInstance "pBlogPost" ''BlogPost')
